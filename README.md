@@ -1,3 +1,3 @@
 # eatwise2
+Projek untuk memenuhi tugas kuliah 
 
-A new Flutter project.
