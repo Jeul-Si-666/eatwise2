@@ -41,11 +41,11 @@ class _MyAppState extends State<MyApp> {
             );
           } else if (snapshot.connectionState == ConnectionState.done) {
             if (snapshot.hasData) {
-            // if (prefs.getBool(IS_LOGIN) ?? false) {
-            //       result = const HomeContent(); // Gunakan HomeContent baru
-            //     } else {
+            if (prefs.getBool(IS_LOGIN) ?? false) {
+                  result = const HomeContent(); // Gunakan HomeContent baru
+                } else {
                   result = LoginPage();
-            //     }
+                }
             } else {
               // result = SignUpPage();
               return Container(child: Text('Error..'));

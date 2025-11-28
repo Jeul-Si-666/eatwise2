@@ -1,9 +1,65 @@
+import 'package:eatwise2/page/home_integrated.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:eatwise2/services/product_service.dart';
-import 'package:eatwise2/services/profile_service.dart';
+import 'package:eatwise2/services/product_service_fixed.dart';
+import 'package:eatwise2/services/profile_service_fixed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+
+// Import LogicAlgorithm Anda
+class LogicAlgorithm {
+  double _hitungBayes(double kemungkinanAwal, double peluangJikaSakit, double peluangJikaSehat) {
+    double pembilang = peluangJikaSakit * kemungkinanAwal;
+    double penyebut = (peluangJikaSakit * kemungkinanAwal) +
+        (peluangJikaSehat * (1 - kemungkinanAwal));
+    return pembilang / penyebut;
+  }
+  
+  double _pHipotesis(double kemungkinanAwal, String umurStr, bool adaRiwayat, String penyakit) {
+    double faktor = 1.0;
+    int umur = int.parse(umurStr);
+    if (penyakit == "Diabetes") {
+      if (umur > 45) faktor *= 1.39;
+      else if (umur > 31) faktor *= 1.24;
+      else faktor *= 1.09;
+      faktor *= adaRiwayat ? 1.7 : 1.0;
+    }
+    else if (penyakit == "Kolestrol") {
+      if (umur > 45) faktor *= 1.36;
+      else if (umur > 31) faktor *= 1.27;
+      else faktor *= 1.15;
+      faktor *= adaRiwayat ? 1.4 : 1.0;
+    }
+    else if (penyakit == "Hipertensi") {
+      if (umur > 45) faktor *= 1.39;
+      else if (umur > 31) faktor *= 1.24;
+      else faktor *= 1.09;
+      faktor *= adaRiwayat ? 1.7 : 1.0;
+    }
+    return (kemungkinanAwal * faktor).clamp(0, 0.9);
+  }
+  
+  double diabetes(String umur, bool adaRiwayat) {
+    double P_Gula_Terhadap_Diabetes = 0.65;
+    double P_Gula_Terhadap_Sehat = 0.4;
+    double P_Diabetes = _pHipotesis(0.1, umur, adaRiwayat, "Diabetes");
+    return _hitungBayes(P_Diabetes, P_Gula_Terhadap_Diabetes, P_Gula_Terhadap_Sehat);
+  }
+  
+  double kolestrol(String umur, bool adaRiwayat) {
+    double P_Lemak_Terhadap_Kolestrol = 0.65;
+    double P_Lemak_Terhadap_Sehat = 0.4;
+    double P_Kolestrol = _pHipotesis(0.1, umur, adaRiwayat, "Kolestrol");
+    return _hitungBayes(P_Kolestrol, P_Lemak_Terhadap_Kolestrol, P_Lemak_Terhadap_Sehat);
+  }
+  
+  double hipertensi(String umur, bool adaRiwayat) {
+    double P_Garam_Terhadap_Hipertensi = 0.65;
+    double P_Garam_Terhadap_Sehat = 0.4;
+    double P_Hipertensi = _pHipotesis(0.1, umur, adaRiwayat, "Hipertensi");
+    return _hitungBayes(P_Hipertensi, P_Garam_Terhadap_Hipertensi, P_Garam_Terhadap_Sehat);
+  }
+}
 
 class ReportScreenApi extends StatefulWidget {
   final int productId;
@@ -20,7 +76,10 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
   Map<String, dynamic>? _product;
   Map<String, dynamic>? _profile;
   Map<String, dynamic>? _analysis;
+  Map<String, double>? _risikoPersentase; // Tambahkan ini
   int? _userId;
+  
+  final LogicAlgorithm _bayesAlgorithm = LogicAlgorithm(); // Instance Bayes
   
   @override
   void initState() {
@@ -32,21 +91,19 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
     setState(() => _isLoading = true);
 
     try {
-      // Ambil user_id
       final prefs = await SharedPreferences.getInstance();
-      _userId = prefs.getInt('user_id');
+      String? uIdString = prefs.getString('user_id');
+      _userId = int.tryParse(uIdString ?? '');
 
-      // Load product
       _product = await ProductService.getProductById(widget.productId);
       
-      // Load profile
       if (_userId != null) {
         _profile = await ProfileService.getProfile(_userId!);
       }
 
-      // Perform analysis (tanpa save dulu)
       if (_product != null && _profile != null) {
         _analysis = _performClientSideAnalysis(_product!, _profile!);
+        _risikoPersentase = _calculateBayesRisk(_product!, _profile!); // Hitung risiko Bayes
       }
 
     } catch (e) {
@@ -59,7 +116,35 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
     }
   }
 
-  // Analisis di client side untuk preview
+  // Fungsi untuk menghitung risiko menggunakan Bayes
+  Map<String, double> _calculateBayesRisk(
+    Map<String, dynamic> product,
+    Map<String, dynamic> profile,
+  ) {
+    Map<String, double> risiko = {};
+    
+    // Ambil data profil
+    String umur = (profile['umur'] ?? 25).toString();
+    bool riwayatDiabetes = profile['riwayat_diabetes'] == 1;
+    bool riwayatKolesterol = profile['riwayat_kolesterol'] == 1;
+    bool riwayatHipertensi = profile['riwayat_hipertensi'] == 1;
+    
+    // Hitung risiko hanya jika produk memiliki tingkat tinggi
+    if (product['tingkat_gula'] == 'tinggi') {
+      risiko['Diabetes'] = _bayesAlgorithm.diabetes(umur, riwayatDiabetes);
+    }
+    
+    if (product['tingkat_lemak'] == 'tinggi') {
+      risiko['Kolesterol'] = _bayesAlgorithm.kolestrol(umur, riwayatKolesterol);
+    }
+    
+    if (product['tingkat_garam'] == 'tinggi') {
+      risiko['Hipertensi'] = _bayesAlgorithm.hipertensi(umur, riwayatHipertensi);
+    }
+    
+    return risiko;
+  }
+
   Map<String, dynamic> _performClientSideAnalysis(
     Map<String, dynamic> product,
     Map<String, dynamic> profile,
@@ -141,14 +226,12 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
       }
     }
 
-    // Tentukan warna tema berdasarkan status
     final bool isGood = _analysis?['status_aman'] ?? true;
     final Color primaryColor = isGood ? const Color(0xFF388E3C) : const Color(0xFFFBC02D);
     final Color lightColor = isGood ? const Color(0xFFC8E6C9) : const Color(0xFFFFF9C4);
     final IconData statusIcon = isGood ? Icons.check_circle : Icons.warning;
     final String statusText = isGood ? 'AMAN' : 'BERESIKO';
 
-    // Kalkulasi kalori
     final int currentCalories = _profile?['kalori_terkonsumsi_hari_ini'] ?? 0;
     final int targetCalories = _profile?['target_kalori_harian'] ?? 2000;
     final int productCalories = _product!['kalori'] ?? 0;
@@ -263,6 +346,12 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
                     ),
                   ],
                   const SizedBox(height: 24),
+
+                  // BAGIAN BARU: Analisis Risiko Bayes
+                  if (_risikoPersentase != null && _risikoPersentase!.isNotEmpty) ...[
+                    _buildRisikoSection(_risikoPersentase!),
+                    const SizedBox(height: 24),
+                  ],
 
                   // Peringatan alergi
                   if (_analysis != null && _analysis!['peringatan_alergi'].isNotEmpty) ...[
@@ -424,6 +513,117 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
     );
   }
 
+  // Widget baru untuk menampilkan risiko Bayes
+  Widget _buildRisikoSection(Map<String, double> risiko) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.purple.shade50, Colors.blue.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade200, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: Colors.purple.shade700, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Analisis Risiko Penyakit',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.purple.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Berdasarkan komposisi makanan dan profil kesehatan Anda:',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...risiko.entries.map((entry) {
+            return _buildRisikoItem(entry.key, entry.value);
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRisikoItem(String penyakit, double persentase) {
+    final persenFormat = (persentase * 100).toStringAsFixed(1);
+    Color risikoColor;
+    String risikoLevel;
+    
+    if (persentase < 0.3) {
+      risikoColor = Colors.green;
+      risikoLevel = 'Rendah';
+    } else if (persentase < 0.6) {
+      risikoColor = Colors.orange;
+      risikoLevel = 'Sedang';
+    } else {
+      risikoColor = Colors.red;
+      risikoLevel = 'Tinggi';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                penyakit,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: risikoColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: risikoColor, width: 1),
+                ),
+                child: Text(
+                  '$persenFormat% ($risikoLevel)',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: risikoColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: persentase,
+              minHeight: 8,
+              color: risikoColor,
+              backgroundColor: risikoColor.withOpacity(0.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompositionItem(String text, {required bool isGood}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
@@ -463,7 +663,6 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
       );
 
       if (result != null) {
-        // Berhasil disimpan
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -476,8 +675,11 @@ class _ReportScreenApiState extends State<ReportScreenApi> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Back to home
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context, 
+                    MaterialPageRoute(builder: (context) => HomeContent()),
+                  );
                 },
                 child: const Text('OK'),
               ),

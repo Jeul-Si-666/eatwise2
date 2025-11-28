@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:eatwise2/model/user.dart';
-import 'package:eatwise2/page/home.dart' ;
+import 'package:eatwise2/page/home_integrated.dart' ;
 import 'package:eatwise2/page/user_profile.dart' as UserProfile;
-import 'package:eatwise2/page/hasil.dart' as HasilPage;
+import 'package:eatwise2/page/hasil_integrated.dart' as HasilPage;
 // import 'package:eatwise2/page/modul_pasien/signup.dart';
 // import 'package:eatwise2/page/modul_pegawai/index.dart' as IndexPegawai;
 import 'package:eatwise2/util/session.dart';
@@ -297,7 +297,7 @@ class _LoginPageState extends State<LoginPage> {
   print('--- [BISMILLAH DEBUG START] ---');
 
   try {
-    // Kirim data ke server
+    // Kirim data ke server 
     final response = await login(
       User(
         idUser: '', 
@@ -313,7 +313,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
     // print("Bagian response Decode ");
-    // print("Isi Respon Server: ${response.body}");
+     print("Isi Respon Server: ${response.body}");
     // print("Bagian response Decode ");
     // Decode JSON
     
