@@ -3,6 +3,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:google_fonts/google_fonts.dart';
+// Import halaman hasil dan service
+import 'package:eatwise2/page/hasil_integrated.dart';
+import 'package:eatwise2/services/product_service_fixed.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({Key? key}) : super(key: key);
@@ -202,7 +205,7 @@ class _ScanPageState extends State<ScanPage> {
     // Stop scanner sementara
     await cameraController.stop();
 
-    // TODO: Fetch product dari API
+    // Fetch product dari API
     await _fetchProductAndNavigate(barcode);
 
     setState(() {
@@ -215,28 +218,28 @@ class _ScanPageState extends State<ScanPage> {
   // ============================================
   Future<void> _fetchProductAndNavigate(String barcode) async {
     try {
+      // Fetch product dari API
+      final product = await ProductService.getProductByBarcode(barcode);
+      
       // Sementara pakai delay untuk simulasi
       await Future.delayed(const Duration(seconds: 1));
       
-      // Simulasi data (hapus ini nanti)
       if (!mounted) return;
       
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Barcode Detected!', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-          content: Text('Barcode: $barcode\n\nIntegrasi dengan API akan dilakukan selanjutnya.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context); // Kembali ke home
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      // Navigate ke halaman hasil
+      print("Navigating to ReportScreenApi with product: $product");
+      int idProduct = product != null ? product['id'] as int : 0;
+      if (product != null) {
+        print("Product found: $product");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportScreenApi(productId: idProduct),
+          ),
+        );
+      } else {
+        _showProductNotFoundDialog(barcode);
+      }
       
     } catch (e) {
       if (!mounted) return;

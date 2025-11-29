@@ -126,4 +126,25 @@ class ProfileService {
       'minute': int.parse(parts[1]),
     };
   }
+
+  static int calculateAge(DateTime birthDate) {
+    DateTime today = DateTime.now();
+    int age = today.year - birthDate.year;
+    if (today.month < birthDate.month || 
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  static DateTime? parseBirthDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return null;
+    try {
+      return DateTime.parse(dateString);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  
 }

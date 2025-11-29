@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import 'package:eatwise2/page/user_profile.dart';
 import 'package:eatwise2/page/scan_page.dart';
-import 'package:eatwise2/services/profile_service.dart';
+import 'package:eatwise2/services/profile_service_fixed.dart';
 import 'package:eatwise2/services/history_service.dart';
 import 'package:eatwise2/util/session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
