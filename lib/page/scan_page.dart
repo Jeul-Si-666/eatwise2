@@ -3,9 +3,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:google_fonts/google_fonts.dart';
-// Import halaman hasil dan service
-// import 'package:eatwise2/page/hasil.dart';
-// import 'package:eatwise2/services/product_service.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({Key? key}) : super(key: key);
@@ -18,6 +15,7 @@ class _ScanPageState extends State<ScanPage> {
   MobileScannerController cameraController = MobileScannerController();
   bool _isProcessing = false;
   String? _lastScannedCode;
+  bool _isTorchOn = false; // Track torch state manually
 
   // Warna tema
   static const Color _primaryColor = Color(0xFF388E3C);
@@ -50,18 +48,16 @@ class _ScanPageState extends State<ScanPage> {
         actions: [
           // Toggle flash
           IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.white);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: Colors.amber);
-                }
-              },
+            icon: Icon(
+              _isTorchOn ? Icons.flash_on : Icons.flash_off,
+              color: _isTorchOn ? Colors.amber : Colors.white,
             ),
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: () {
+              setState(() {
+                _isTorchOn = !_isTorchOn;
+              });
+              cameraController.toggleTorch();
+            },
           ),
           // Switch camera
           IconButton(
@@ -203,9 +199,6 @@ class _ScanPageState extends State<ScanPage> {
       _lastScannedCode = barcode;
     });
 
-    // Vibrate atau sound feedback (opsional)
-    // HapticFeedback.mediumImpact();
-
     // Stop scanner sementara
     await cameraController.stop();
 
@@ -222,13 +215,12 @@ class _ScanPageState extends State<ScanPage> {
   // ============================================
   Future<void> _fetchProductAndNavigate(String barcode) async {
     try {
-      // TODO: Uncomment ini setelah ProductService dibuat
-      // final product = await ProductService.getProductByBarcode(barcode);
-      
       // Sementara pakai delay untuk simulasi
       await Future.delayed(const Duration(seconds: 1));
       
       // Simulasi data (hapus ini nanti)
+      if (!mounted) return;
+      
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -246,19 +238,8 @@ class _ScanPageState extends State<ScanPage> {
         ),
       );
       
-      // NANTI: Navigate ke halaman hasil
-      // if (product != null) {
-      //   Navigator.pushReplacement(
-      //     context,
-      //     MaterialPageRoute(
-      //       builder: (context) => ReportScreen(productId: product.id),
-      //     ),
-      //   );
-      // } else {
-      //   _showProductNotFoundDialog(barcode);
-      // }
-      
     } catch (e) {
+      if (!mounted) return;
       _showErrorDialog('Gagal memuat data produk: $e');
     }
   }
@@ -272,11 +253,10 @@ class _ScanPageState extends State<ScanPage> {
 
     if (image != null) {
       setState(() => _isProcessing = true);
-
-      // TODO: Implementasi OCR atau image recognition
-      // Untuk sementara, tampilkan dialog bahwa fitur masih dalam pengembangan
       
       setState(() => _isProcessing = false);
+      
+      if (!mounted) return;
       
       showDialog(
         context: context,
