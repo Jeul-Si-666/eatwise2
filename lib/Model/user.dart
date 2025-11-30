@@ -1,65 +1,48 @@
-import 'dart:convert' ;
+import 'dart:convert';
 import 'package:http/http.dart';
-//import 'package:good_health/util/config.dart';
 import 'package:http/http.dart' as http;
 import 'package:eatwise2/util/config.dart';
 
 class User {
- final String? idUser, nama, password, email;
-  // final Pasien? idPasien;
+  String? idUser;
+  String? username;
+  String? password;
+  String? email;
 
-  User({
-    this.idUser, 
-    required this.nama, 
-    required this.password, 
-    this.email
-    });
+  User({this.idUser, this.username, this.password, this.email});
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-        idUser: json['id_User'],
-        nama: json['nama'],
-        password: json['password'],
-        email: json['email']);
+      idUser: json['id']?.toString(),
+      username: json['username'],
+      password: json['password'],
+      email: json['email']
+    );
   }
 }
 
-List<User> UserFromJson(jsonData) {
-  List<User> result =
-      List<User>.from(jsonData.map((item) => User.fromJson(item)));
-
-  return result;
-}
-
-// register User (POST)
-Future UserCreate(User User) async {
-  //String route = AppConfig.API_ENDPOINT + "/User/create.ppassword";
+Future<Response?> userCreate(User user) async {
   try {
-    final response = await http.post(Uri.parse('${AppConfig.baseUrl}/register.php'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(
-            {'nama': User.nama, 'password': User.password, 'email': User.email}));
-
+    final response = await http.post(
+      Uri.parse('${AppConfig.baseUrl}/register.php'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({'nama': user.username, 'password': user.password, 'email': user.email})
+    );
     return response;
   } catch (e) {
-    print("Error : ${e.toString()}");
     return null;
   }
 }
+
 Future<Response?> login(User user) async {
-  //String route = AppConfig.API_ENDPOINT + "/login.php";
   try {
     final response = await http.post(
       Uri.parse('${AppConfig.baseUrl}/login.php'),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({'username': user.nama, 'password': user.password}),
+      body: jsonEncode({'username': user.username, 'password': user.password}),
     );
-
-
-    print(response.body.toString());
     return response;
   } catch (e) {
-    print("Error : ${e.toString()}");
     return null;
   }
 }

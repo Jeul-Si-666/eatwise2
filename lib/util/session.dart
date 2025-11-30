@@ -1,44 +1,30 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eatwise2/Model/user.dart';
+import 'package:eatwise2/model/user.dart';
 
+const String IS_LOGIN = 'IS_LOGIN';
+const String JENIS_LOGIN = 'JENIS_LOGIN';
+const String ID_User = 'ID_User';
+const String NAMA = 'NAMA';
+const String PASSWORD = 'PASSWORD';
+const String EMAIL = 'EMAIL';
 
-const IS_LOGIN = 'IS_LOGIN';
-const JENIS_LOGIN = 'JENIS_LOGIN';
-const ID_User = 'ID_User';
-const NAMA = 'NAMA';
-const password = 'password';
-const EMAIL = 'EMAIL';
-
-// ignore: camel_case_types
-// enum jenisLogin { User, PEGAWAI }
-
-Future CreateUserSession(User User) async {
+Future CreateUserSession(User user) async {
   final prefs = await SharedPreferences.getInstance();
   prefs.setBool(IS_LOGIN, true);
-  prefs.setString(ID_User, User.idUser ?? '');
-  prefs.setString(NAMA, User.nama ?? '');
-  prefs.setString(password, User.password ?? '');
-  prefs.setString(EMAIL, User.email ?? '');
-  // prefs.setString(JENIS_LOGIN, jenisLogin.User.toString());
+  prefs.setString(ID_User, user.idUser ?? '');
+  prefs.setString(NAMA, user.username ?? '');
+  prefs.setString(PASSWORD, user.password ?? '');
+  prefs.setString(EMAIL, user.email ?? '');
   return true;
 }
 
-Future createUserSessionx(String id, String nama, String password, String email) async {
+Future createUserSessionx(String id, String username, String pwd, String email) async {
   final prefs = await SharedPreferences.getInstance();
   prefs.setBool(IS_LOGIN, true);
   prefs.setString(ID_User, id);
-  prefs.setString(NAMA, nama);
-  prefs.setString(password, password);
-  prefs.setString(EMAIL, email);
-  // prefs.setString(JENIS_LOGIN, jenisLogin.User.toString());
-  return true;
-}
-
-Future createPegawaiSession(String username) async {
-  final prefs = await SharedPreferences.getInstance();
-  prefs.setBool(IS_LOGIN, true);
   prefs.setString(NAMA, username);
-  // prefs.setString(JENIS_LOGIN, jenisLogin.PEGAWAI.toString());
+  prefs.setString(PASSWORD, pwd);
+  prefs.setString(EMAIL, email);
   return true;
 }
 
